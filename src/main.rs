@@ -1,15 +1,17 @@
+use configparser::ini::Ini;
 use domain::base::{name::Dname, Rtype};
 use domain::rdata::AllRecordData;
 use domain::resolv::StubResolver;
-use std::{env, collections::HashMap, str::FromStr};
-use configparser::ini::Ini;
+use std::{collections::HashMap, env, str::FromStr};
 
 // I don't think this needs to be a result anymore
-fn load_config() -> 
-            Result<
-                (HashMap<String, Option<String>>,
-                HashMap<String, Option<String>>)
-                , std::io::Error> {
+fn load_config() -> Result<
+    (
+        HashMap<String, Option<String>>,
+        HashMap<String, Option<String>>,
+    ),
+    std::io::Error,
+> {
     let mut config = Ini::new();
     let map = config.load("config.ini").unwrap();
 
@@ -20,9 +22,7 @@ fn load_config() ->
 }
 
 fn resolve_record(domain: Dname<Vec<u8>>, record: Rtype) -> Vec<String> {
-    let res = StubResolver::run(move |stub| async move {
-        stub.query((domain, record)).await
-    });
+    let res = StubResolver::run(move |stub| async move { stub.query((domain, record)).await });
     // I have to do this over two lines otherwise I get some weird error with temporary values
     // or some shit
     let res = res.unwrap();
@@ -37,7 +37,6 @@ fn resolve_record(domain: Dname<Vec<u8>>, record: Rtype) -> Vec<String> {
 }
 
 fn main() {
-
     let config = load_config().expect("Could not load config file");
 
     let mut args = env::args().skip(1);
@@ -52,7 +51,7 @@ fn main() {
         }
     };
 
-    let mut records: Vec<_> = Vec::<Rtype>::new(); 
+    let mut records: Vec<_> = Vec::<Rtype>::new();
 
     let record_types = json::from(config.0.clone());
     for record in record_types.entries() {
@@ -60,7 +59,7 @@ fn main() {
         records.push(record);
     }
 
-    records.sort_by(|a,b| a.to_string().cmp(&b.to_string()));
+    records.sort_by(|a, b| a.to_string().cmp(&b.to_string()));
 
     println!("Domain: {}\n", name);
 
@@ -75,14 +74,15 @@ fn main() {
     }
 
     print!("\n");
-    for record in records { 
+    for record in records {
         let name = name.clone();
         let contents = resolve_record(name, record);
-        // if the record is NS 
+        // if the record is NS
         // resolve the a record for each content
         for content in contents {
-            print!("{} ", record);
-            print!("{}", content);
+            print!("{} {} ", record, content);
+            // might be worth implementing a hostname validator
+            // then if the content is a hostname, resolve the A record
             if record == Rtype::Ns {
                 let ns_resolved = resolve_record(Dname::from_str(&content).unwrap(), Rtype::A);
                 print!(" > {}\n", ns_resolved[0]);
