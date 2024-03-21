@@ -1,0 +1,13 @@
+[package]
+name = "rust_dns"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+domain = {version = "0.9.3", features = ['resolv-sync']}
+ray-rust = "0.1.5"
+tokio = { version = "1.33", features = ["io-util", "macros", "net", "time", "sync", "rt-multi-thread" ] }
+configparser = "3.0.4"
+json = "0.12.4"
